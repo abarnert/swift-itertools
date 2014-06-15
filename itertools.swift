@@ -257,38 +257,57 @@ func filterfalse<S: Sequence, T where T == S.GeneratorType.Element>
 }
 
 struct GroupBy<S: Sequence, T, U: Equatable
-               where T == S.GeneratorType.Element>
-        : Sequence, Generator {
-    var gen: S.GeneratorType
-    let keyfunc: T->U
-    var tgtkey: U?
-    var currkey: U?
-    var currvals: T[]
-    init(sequence: S, key: T->U) {
-        keyfunc = key
-        gen = sequence.generate()
-        tgtkey = nil
-        currkey = nil
-        currvals = []
+  where T == S.GeneratorType.Element>
+: Sequence, Generator {
+  var gen: S.GeneratorType
+  let keyfunc: T->U
+  var currkey: U?
+  var currvals: T[]
+  init(sequence: S, key: T->U) {
+    keyfunc = key
+    gen = sequence.generate()
+    currkey = nil
+    currvals = []
+  }
+  func generate() -> GroupBy<S, T, U> {
+    return self
+  }
+  mutating func next() -> (U, T[])? {
+    if currkey == nil {
+      if let currval = gen.next() {
+        currvals = [currval]
+        currkey = keyfunc(currval)
+      } else {
+        return nil
+      }
     }
-    func generate() -> GroupBy<S, T, U> {
-        return self
-    }
-    mutating func next() -> (U, T[])? {
-        while tgtkey == nil && currkey == nil || currkey! == tgtkey! {
-            if let currval = gen.next() {
-                currvals.append(currval)
-                currkey = keyfunc(currval)
-            } else {
-                return (currkey!, currvals)
-            }
+    while true {
+      if let currval = gen.next() {
+        let key = keyfunc(currval)
+        if key == currkey {
+          //println("Adding \(currval) to \(currvals) because \(key) == \(currkey)")
+          currvals.append(currval)
+        } else {
+          let lastvals = currvals
+          let lastkey = currkey!
+          currvals = [currval]
+          currkey = key
+          //println("Returning \(lastkey), \(lastvals) because \(key) != \(lastkey)")
+          return (lastkey, lastvals)
         }
-        let key = tgtkey!
-        let vals = currvals
-        tgtkey = currkey
-        currvals = []
-        return (key, vals)
+      } else {
+        if !currvals.isEmpty {
+          //println("Done, returning last \(currkey), \(currvals)")
+          let vals = currvals
+          currvals = []
+          return (currkey!, vals)
+        } else {
+          //print("Done, empty")
+          return nil
+        }
+      }
     }
+  }
 }
 
 /* As far as I can tell, there's no way to specify a the identity function

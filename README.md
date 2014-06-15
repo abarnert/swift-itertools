@@ -114,7 +114,11 @@ Iterators terminating on shortest input sequence
 `groupby(sequence: Sequence, key: T->U)` ->
     `(key(s[0]), [s[0], s[1], ...]), (key(s[n]), [s[n], s[n+1], ...]), ...`
 	Unlike the Python version, the key function is not optional; see
-    `groupby_nokey` to group equal objects without a key function.
+    `groupby_nokey` to group equal objects without a key function. 
+	Also unlike Python, groupby doesn't return sub-iterators, it
+    returns arrays. (Not just because it would be a ton of work to
+    return sub-Generator objects, but because people often find
+    groupby hard to work with in Python...)	
 	
 `groupby_nokey(sequence: Sequence)` ->
     `(s[0], [s[0], s[1], ...]), (s[n], [s[n], s[n+1], ...]), ...`
