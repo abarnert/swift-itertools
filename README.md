@@ -111,3 +111,13 @@ Iterators terminating on shortest input sequence
 `filterfalse(sequence: Sequence, predicate: T->Bool)` -->
     `s[0] if !p(s[0]), s[1] if !p(s[1]), ...`
 
+`groupby(sequence: Sequence, key: T->U)` ->
+    `(key(s[0]), [s[0], s[1], ...]), (key(s[n]), [s[n], s[n+1], ...]), ...`
+	Unlike the Python version, the key function is not optional; see
+    `groupby_nokey` to group equal objects without a key function.
+	
+`groupby_nokey(sequence: Sequence)` ->
+    `(s[0], [s[0], s[1], ...]), (s[n], [s[n], s[n+1], ...]), ...`
+	Groups equal values, without a key function. To use a key
+    function, see `groupby`.
+	

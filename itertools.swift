@@ -256,6 +256,54 @@ func filterfalse<S: Sequence, T where T == S.GeneratorType.Element>
     return filter(sequence, negate(predicate))
 }
 
+struct GroupBy<S: Sequence, T, U: Equatable
+               where T == S.GeneratorType.Element>
+        : Sequence, Generator {
+    var gen: S.GeneratorType
+    let keyfunc: T->U
+    var tgtkey: U?
+    var currkey: U?
+    var currvals: T[]
+    init(sequence: S, key: T->U) {
+        keyfunc = key
+        gen = sequence.generate()
+        tgtkey = nil
+        currkey = nil
+        currvals = []
+    }
+    func generate() -> GroupBy<S, T, U> {
+        return self
+    }
+    mutating func next() -> (U, T[])? {
+        while tgtkey == nil && currkey == nil || currkey! == tgtkey! {
+            if let currval = gen.next() {
+                currvals.append(currval)
+                currkey = keyfunc(currval)
+            } else {
+                return (currkey!, currvals)
+            }
+        }
+        let key = tgtkey!
+        let vals = currvals
+        tgtkey = currkey
+        currvals = []
+        return (key, vals)
+    }
+}
+
+/* As far as I can tell, there's no way to specify a the identity function
+   as the default key function, making U the same type as T; the only thing
+   you can do is write two separate functions. */   
+func groupby<S: Sequence, T, U where T == S.GeneratorType.Element>
+        (sequence: S, key: T->U) -> GroupBy<S, T, U> {
+    return GroupBy(sequence: sequence, key: key)
+}
+
+func groupby_nokey<S: Sequence, T: Equatable where T == S.GeneratorType.Element>
+        (sequence: S) -> GroupBy<S, T, T> {
+    return GroupBy(sequence: sequence, key: { $0 })
+}
+
 // Scala interpose
 struct Interpose<S: Sequence, T where T == S.GeneratorType.Element>
         : Sequence, Generator {
