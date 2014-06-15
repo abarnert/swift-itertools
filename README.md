@@ -111,7 +111,7 @@ Iterators terminating on shortest input sequence
 `filterfalse(sequence: Sequence, predicate: T->Bool)` -->
     `s[0] if !p(s[0]), s[1] if !p(s[1]), ...`
 
-`groupby(sequence: Sequence, key: T->U)` ->
+`groupby(sequence: Sequence, key: T->U)` -->
     `(key(s[0]), [s[0], s[1], ...]), (key(s[n]), [s[n], s[n+1], ...]), ...`
 	Unlike the Python version, the key function is not optional; see
     `groupby_nokey` to group equal objects without a key function. 
@@ -120,8 +120,21 @@ Iterators terminating on shortest input sequence
     return sub-Generator objects, but because people often find
     groupby hard to work with in Python...)	
 	
-`groupby_nokey(sequence: Sequence)` ->
+`groupby_nokey(sequence: Sequence)` -->
     `(s[0], [s[0], s[1], ...]), (s[n], [s[n], s[n+1], ...]), ...`
 	Groups equal values, without a key function. To use a key
     function, see `groupby`.
 	
+`islice(sequence: Sequence, start=0, stop=nil, step=1)` -->
+    Unlike the Python version, you can't call this with a single
+	positional argument as `stop`, but then that's a weird design in
+    Python anyway. Use keyword arguments.
+	
+`starmap(sequence: Sequence of tuples, f)` -->
+    `f(*s[0]), f(*s[1]), ...`
+    Does not exist, because (a) tuples aren't sequences,
+    (b) there doesn't seem to be any way to convert from even a homogenous
+    sequence to a tuple or vice-versa, and (c) even if you could, there
+    doesn't seem to be any way to call a function given its arguments as
+    a tuple.
+

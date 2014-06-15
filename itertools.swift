@@ -323,6 +323,83 @@ func groupby_nokey<S: Sequence, T: Equatable where T == S.GeneratorType.Element>
     return GroupBy(sequence: sequence, key: { $0 })
 }
 
+struct ISlice<S: Sequence, T where T == S.GeneratorType.Element>
+        : Sequence, Generator {
+    var gen: S.GeneratorType
+    let start: Int
+    let stop: Int?
+    let step: Int
+    var pos: Int
+    init(sequence: S, start: Int = 0, stop: Int? = nil, step: Int = 1) {
+        self.gen = sequence.generate()
+        self.start = start
+	self.stop = stop
+	self.step = step
+	self.pos = 0
+    }
+    func generate() -> ISlice<S, T> {
+        return self
+    }
+    mutating func next() -> T? {
+        if pos < start {
+            for _ in 0..start {
+	        if let _ = gen.next() {
+                } else {
+                    return nil
+                }
+            }
+            pos = start
+        }
+	if (stop != nil) && (pos > stop) {
+            return nil
+        }
+        pos += step
+        if let val = gen.next() {
+            return val
+        } else {
+            return nil
+        }
+    }
+}
+
+func islice<S: Sequence, T where T == S.GeneratorType.Element>
+        (sequence: S, start: Int = 0, stop: Int? = nil, step: Int = 1) 
+        -> ISlice<S, T> {
+    return ISlice(sequence: sequence, start: start, stop: stop, step: step)
+}
+
+/* starmap appears to be impossible, because (a) tuples aren't sequences,
+   (b) there doesn't seem to be any way to convert from even a homogenous
+   sequence to a tuple or vice-versa, and (c) even if you could, there
+   doesn't seem to be any way to call a function given its arguments as
+   a tuple. */
+
+// Python itertools.takewhile
+struct TakeWhile<S: Sequence, T where T == S.GeneratorType.Element>
+        : Sequence, Generator {
+    var gen: S.GeneratorType
+    let pred: T->Bool
+    init(sequence: S, predicate: T->Bool) {
+        gen = sequence.generate()
+        pred = predicate
+    }
+    func generate() -> TakeWhile<S, T> {
+        return self
+    }
+    mutating func next() -> T? {
+        if let val: T = gen.next() {
+            if pred(val) { return val }
+        }
+        return nil
+    }
+}
+
+func takewhile<S: Sequence, T where T == S.GeneratorType.Element>
+              (sequence: S, predicate: T->Bool) 
+              -> TakeWhile<S, T> {
+    return TakeWhile(sequence: sequence, predicate: predicate)
+}
+
 // Scala interpose
 struct Interpose<S: Sequence, T where T == S.GeneratorType.Element>
         : Sequence, Generator {
@@ -361,28 +438,3 @@ func interpose<S: Sequence, T where T == S.GeneratorType.Element>
     return Interpose(separator: separator, sequence: sequence)
 }
 
-// Python itertools.takewhile
-struct TakeWhile<S: Sequence, T where T == S.GeneratorType.Element>
-        : Sequence, Generator {
-    var gen: S.GeneratorType
-    let pred: T->Bool
-    init(sequence: S, predicate: T->Bool) {
-        gen = sequence.generate()
-        pred = predicate
-    }
-    func generate() -> TakeWhile<S, T> {
-        return self
-    }
-    mutating func next() -> T? {
-        if let val: T = gen.next() {
-            if pred(val) { return val }
-        }
-        return nil
-    }
-}
-
-func takewhile<S: Sequence, T where T == S.GeneratorType.Element>
-              (sequence: S, predicate: T->Bool) 
-              -> TakeWhile<S, T> {
-    return TakeWhile(sequence: sequence, predicate: predicate)
-}
