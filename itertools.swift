@@ -10,6 +10,10 @@ func array<S: Sequence, T where T == S.GeneratorType.Element>(sequence: S) -> T[
     return t
 }
 
+func negate<T>(f: T->Bool) -> T->Bool {
+    return { !f($0) }
+}
+
 func zipopt<T, U>(t: T?, u: U?) -> (T, U)? {
     if let tt: T = t {
         if let uu: U = u {
@@ -188,7 +192,6 @@ struct Compress<SD: Sequence, SS: Sequence, TD
     }
 }
 
-
 func compress<SD: Sequence, SS: Sequence, TD
               where TD == SD.GeneratorType.Element, 
               Bool == SS.GeneratorType.Element>
@@ -210,6 +213,47 @@ func compress_nz<SD: Sequence, SS: Sequence, TD
         (data: SD, selectors: SS) -> Compress<SD, MapSequenceView<SS, Bool>, TD> {
     var mapped_selectors = map(selectors, { $0 != 0 })
     return Compress(data: data, selectors: mapped_selectors)
+}
+
+struct DropWhile<S: Sequence, T where T == S.GeneratorType.Element>
+        : Sequence, Generator {
+    var gen: S.GeneratorType
+    var dropped = false
+    let pred: T->Bool
+    init(sequence: S, predicate: T->Bool) {
+        gen = sequence.generate()
+        pred = predicate
+    }
+    func generate() -> DropWhile<S, T> {
+        return self
+    }
+    mutating func next() -> T? {
+        if !dropped {
+            dropped = true
+            while let value = gen.next() {
+                if !pred(value) {
+                    return value
+                }
+            }
+            return nil
+        } else {
+            return gen.next()
+        }
+    }
+}
+
+func dropwhile<S: Sequence, T where T == S.GeneratorType.Element>
+        (sequence: S, predicate: T->Bool) -> DropWhile<S, T> {
+    return DropWhile(sequence: sequence, predicate: predicate)
+}
+
+/* Since filter is built in, we might as well use it. As mentioned
+   for map under compress_nz, there doesn't seem to be any way to
+   get this to infer the return type, so we have to use a private
+   type that's part of the implementation of filter... */
+func filterfalse<S: Sequence, T where T == S.GeneratorType.Element>
+        (sequence: S, predicate: T->Bool) -> FilterCollectionView<S> {
+    return filter(sequence, negate(predicate))
 }
 
 // Scala interpose
