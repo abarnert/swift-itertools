@@ -400,10 +400,87 @@ func takewhile<S: Sequence, T where T == S.GeneratorType.Element>
     return TakeWhile(sequence: sequence, predicate: predicate)
 }
 
+/* tee should be possible, but every attempt ends in a compiler crash */
+
+struct Zip<S0: Sequence, S1: Sequence, T0, T1
+           where T0 == S0.GeneratorType.Element, T1 == S1.GeneratorType.Element>
+        : Sequence, Generator {
+    var generator0: S0.GeneratorType
+    var generator1: S1.GeneratorType
+    init(sequence0: S0, sequence1: S1) {
+        generator0 = sequence0.generate()
+        generator1 = sequence1.generate()
+    }
+    func generate() -> Zip<S0, S1, T0, T1> {
+        return self
+    }
+    mutating func next() -> (T0, T1)? {
+        if let (t0, t1) = zipopt(generator0.next(), generator1.next()) {
+            return (t0, t1)
+        }
+        return nil
+    }
+}
+
+func zip<S0: Sequence, S1: Sequence, T0, T1
+         where T0 == S0.GeneratorType.Element, T1 == S1.GeneratorType.Element>
+        (sequence0: S0, sequence1: S1) -> Zip<S0, S1, T0, T1> {
+    return Zip(sequence0: sequence0, sequence1: sequence1)
+}
+
+struct ZipFill<S0: Sequence, S1: Sequence, T0, T1
+               where T0 == S0.GeneratorType.Element, 
+               T1 == S1.GeneratorType.Element>
+        : Sequence, Generator {
+    var generator0: S0.GeneratorType
+    var generator1: S1.GeneratorType
+    var fillvalue0: T0
+    var fillvalue1: T1
+    init(sequence0: S0, sequence1: S1, fillvalue0: T0, fillvalue1: T1) {
+        self.generator0 = sequence0.generate()
+        self.generator1 = sequence1.generate()
+        self.fillvalue0 = fillvalue0
+        self.fillvalue1 = fillvalue1
+    }
+    func generate() -> ZipFill<S0, S1, T0, T1> {
+        return self
+    }
+    mutating func next() -> (T0?, T1?)? {
+        if let t0 = generator0.next() {
+	    if let t1 = generator1.next() {
+                return (t0, t1)
+            } else {
+                return (t0, fillvalue1)
+            }
+        } else if let t1 = generator1.next() {
+            return (fillvalue0, t1)
+        } else {
+            return nil
+        }
+    }
+}
+
+func zip_fill<S0: Sequence, S1: Sequence, T0, T1
+              where T0 == S0.GeneratorType.Element, 
+              T1 == S1.GeneratorType.Element>
+        (sequence0: S0, sequence1: S1, fillvalue0: T0, fillvalue1: T1)
+        -> ZipFill<S0, S1, T0, T1> {
+    return ZipFill(sequence0: sequence0, sequence1: sequence1, 
+                   fillvalue0: fillvalue0, fillvalue1: fillvalue1)
+}
+
+func zip_longest<S0: Sequence, S1: Sequence, T0, T1
+                 where Optional<T0> == S0.GeneratorType.Element, 
+                 Optional<T1> == S1.GeneratorType.Element>
+        (sequence0: S0, sequence1: S1) -> ZipFill<S0, S1, T0?, T1?> {
+    return ZipFill(sequence0: sequence0, sequence1: sequence1,
+                   fillvalue0: nil, fillvalue1: nil)
+}
+
+
 // Scala interpose
 struct Interpose<S: Sequence, T where T == S.GeneratorType.Element>
         : Sequence, Generator {
-    typealias Element = T
     let sep: T
     var gen: S.GeneratorType
     var needSep: Bool

@@ -139,3 +139,16 @@ Iterators terminating on shortest input sequence
     doesn't seem to be any way to call a function given its arguments as
     a tuple.
 
+`tee(sequence: Sequence, n: Int)` -->
+    `[s0, s1, ..., sn-1]`
+	This should tee a single (possibly non-repeatable) Sequence into n
+    separate copies, all of which contain all of the elements of the
+    original. Unfortunately, it seems to be impossible to implement
+    without a compiler crash.
+	
+`zip(s0: Sequence of T, s1: sequence of U)` -->
+    `Sequence of (T, U)`
+	Unlike the Python version, this only handles exactly two
+    sequences, because there doesn't seem to be any way to accept
+    variadic arguments of different Sequence types, or to build a
+    tuple with a dynamically-specified number of elements.
