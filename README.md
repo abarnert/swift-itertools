@@ -126,6 +126,7 @@ Iterators terminating on shortest input sequence
     function, see `groupby`.
 	
 `islice(sequence: Sequence, start=0, stop=nil, step=1)` -->
+    `s[start], s[start+step], ..., s[start+n*step]`
     Unlike the Python version, you can't call this with a single
 	positional argument as `stop`, but then that's a weird design in
     Python anyway. Use keyword arguments.
