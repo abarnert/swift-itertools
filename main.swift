@@ -20,6 +20,7 @@ func intifyarg1() -> Int? {
     return nil
 }
 
+/*
 if let limit = intifyarg1() {
     let primes = filter(count(start: 2), make_isprime())
     let limited = takewhile(primes, { $0 <= limit })
@@ -28,3 +29,26 @@ if let limit = intifyarg1() {
 } else {
     println("\(C_ARGV[0]) LIMIT")
 }
+*/
+
+let a = [0, 0, 0, 1, 1, 2, 2, 2, 3]
+let g = groupby_nokey(a)
+for (key, group) in islice(g, start: 1) {
+    println("\(key): \(group)")
+}
+
+let b = [1, 2, 3]
+let c = ["spam", "eggs"]
+for t in zip(b, c) {
+    println("\(t)")
+}
+
+for t in product2(b, c) {
+    println("\(t)")
+}
+
+/*
+for (key, group) in groupby(a, { $0 / 2 }) {
+    println("\(key): \(group)")
+}
+*/

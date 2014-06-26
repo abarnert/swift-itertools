@@ -1,42 +1,134 @@
 swift-itertools
 ===============
 
-A port of Python's itertools
-(https://docs.python.org/3/library/itertools.html) and related things
-to Swift.
+A port of Python's [`itertools`][itertools] and related things to Swift.
+
+    [itertools]: https://docs.python.org/3/library/itertools.html
+
+Background
+==========
+
+Developers in functional languages have long known the benefits of
+writing programs as a chain of list transformations, but lazy
+languages like Haskell have shown that this can be taken much
+farther. Python's `Iterator` protocol (along with related features)
+captures most of the benefit of lazy lists. Over the years, much of
+the relevant part of the Haskell standard prelude has been ported to
+Python (some as part of the standard library, mostly in the
+`itertools` module, and some in third-party modules like Erik Rose's
+[`more-itertools`][more-itertools], and Python developers have found
+new uses for this functionality (e.g., see David Beazley's
+[Generator Tricks for Systems Programmers][gentricks]). Many newer
+languages, like Scala and Clojure, have taken advantage of the
+experience of Haskell and Python to provide similar functionality.
+
+    [more-itertools]: https://github.com/erikrose/more-itertools
+	[gentricks]: http://www.dabeaz.com/generators-uk/
+
+Swift's `Generator` protocol is almost identical to Python's
+`Iterator` protocol, allowing for the same style of
+programming. However, its standard library provides only the most
+basic functions for processing them--`map` and `filter` and not much
+else. This library is an attempt to rectify that problem by porting
+useful functions from Python, Scala, Clojure, and Haskell to Swift,
+starting with most of Python's `itertools` module.
+
+To understand some of these functions, it may help to think at a
+higher level of abstraction, of monads rather than specifically
+sequences, optional values, etc.. However, experience with Python and
+Scala developers have shown that this is a tough hurdle for many
+people, so I've kept things on the concrete level; there are no
+functions to lift a function to any monad, etc., just functions that
+deal with sequences, optionals, etc.
+
+The resulting library should probably be called `gentools` or
+`seqtools` (since what Python calls `Iterator` and `Iterable`, Swift
+calls `Generator` and `Sequence`), but since `itertools` is such a
+well-known (and searchable) name, it seemed more appropriate.
+
+Writing this library has also given me a good opportunity to learn
+Swift. See the blog [Stupid Swift Ideas][] for some of what I've
+discovered along the way.
+
+    [Stupid Swift Ideas]: http://stupidswiftideas.blogspot.com
+
+Static types and homogenous sequences
+=====================================
+
+In keeping with Swift's nature as a traditional static-typed language,
+its collections are homogenous, so `Sequence` and `Generator` are
+meant to be implemented by homogenous collections, which are generic
+types parameterized on the element type. (The protocols themselves are
+_not_ generic; instead, they use associated types, which can be bound
+to the parameters in implementing types. See [Generics][] in the Swift
+Language Guide for details.) While heterogeneous
+collections can be implemented either Java-style (by parameterizing on
+`any` or `AnyObject`) or ObjC-style (by bridging a class like
+`NSArray` that implements the `NSFastEnumeration` protocol) and
+casting back and forth, general-purpose functions like these should
+work on generic, homogenous sequences.
+
+    [Generics]: https://developer.apple.com/library/prerelease/ios/documentation/swift/conceptual/swift_programming_language/Generics.html
+
+Because Swift attempts to be a stricter static language than Java or
+C#, more on the lines with C++ (or even Haskell), some familiarity
+with the C++ standard-library algorithms derived from [STL][] may be
+useful. However, it's worth noting that many of the techniques and
+concepts from that library don't seem to be portable to Swift. For
+example, many C++ functions that a sequence (or, rather, a pair of
+`iterator`s--which doesn't mean the same thing as in either Python or
+Swift--but that can be ignored, as a Swift `Generator` is equivalent
+to a C++ input iterator that knows its own `end`) of type `T`, and a
+function that operates on objects of any type `U` for which `T` is
+convertible to `U`. There doesn't seem to be any way to define such a
+constraint in Swift, so the corresponding functions require a function
+on type `T` itself.
+
+    [STL]: http://en.wikipedia.org/wiki/Standard_Template_Library
+	
+Similarly, while C++ makes it possible to define a function over a
+variable number of heterogeneous parameters (by using template
+parameter packs), Scala does not; variadic arguments must all be of
+the same type.
 
 Differences from Python
 =======================
 
-A Python Iterator is a Swift Generator; the only major difference is
-that the next method doesn't have double underscores.
+A Python `Iterator` is a Swift `Generator`; the only major difference
+is that the `next` method doesn't have double underscores.
 
-A Python Iterable is a Swift Sequence; the only major difference is
-that the iter method is called generate (and doesn't have double
+A Python `Iterable` is a Swift `Sequence`; the only major difference
+is that the iter method is called `generate` (and doesn't have double
 underscores).
 
-Unlike Python, where every Iterator must also be an Iterable that
-returns self when you ask for an iterator, Swift appears to have no
-such constraint. It seems like at least some Generators are written
-this way, so there's no reason not to do the same thing here. But it
-does affect the usefulness of these functions. In Python, the
-itertools functions take any kind of Iterable, which automatically
-means they work on all Iterators (consuming them); the Swift
-equivalent, taking any kind of Sequence, means not working on some
-Generators. Fortunately, since we're only returning Sequences that are
-Generators, at least you can chain itertools functions together the
-same way as in Python.
+Unlike Python, where every `Iterator` must also be an `Iterable` that
+returns `self` when you ask for an iterator, Swift appears to have no
+such constraint. It seems like at least some `Generator` types are
+written this way, so there's no reason not to do the same thing
+here. But it does affect the usefulness of these functions. In Python,
+the `itertools` functions take any kind of `Iterable`, which
+automatically means they work on any `Iterator` (consuming it); the
+Swift equivalent, taking any kind of `Sequence`, means not working on
+some `Generator`s. Fortunately, since we're only returning `Sequence`s
+that are `Generator`s, at least you can chain `itertools` functions
+together the same way as in Python.
 
-The existing stuff in Swift's standard library (map, etc.) seems to
+The existing stuff in Swift's standard library (`map`, etc.) seems to
 set a precedent that functions should come last whenever possible
 (which makes sense, given the quasi-Ruby-style special handling for
 closure arguments), and failing that, sequences should come
 first. That's not the same as the standard in Python, but it makes
 sense to follow the local Swift standards, so we'll do that.
 
+In Python, variadic parameters can be followed by optional parameters,
+making those optional parameters keyword-only. Swift allows for
+variadic, optional, and keyword-only parameters, but doesn't allow any
+way to combine them all in a single function.
+
 Some functions can't be as flexible as they are in Python (or at least
-I can't figure out how to do so...), so they've been split into
-separate functions.
+I can't figure out how to do so...), sometimes because of the
+homogenous sequence issue, but sometimes because of limitations of the
+language. Such cases have been split into separate functions.
 
 Utility functions and types
 ===========================
@@ -146,9 +238,41 @@ Iterators terminating on shortest input sequence
     original. Unfortunately, it seems to be impossible to implement
     without a compiler crash.
 	
-`zip(s0: Sequence of T, s1: sequence of U)` -->
-    `Sequence of (T, U)`
+`zip(s0: Sequence of T0, s1: sequence of T1)` -->
+    `(s0[0], s1[0]), (s0[1], s1[1]), ...`
 	Unlike the Python version, this only handles exactly two
     sequences, because there doesn't seem to be any way to accept
     variadic arguments of different Sequence types, or to build a
     tuple with a dynamically-specified number of elements.
+
+`zip_longest(s0: Sequence of T0?, s1: sequence of T1?)` -->
+    `(s0[0], s1[0]), (s0[1], s1[1]), ..., (nil, s1[n]), ...`
+	Unlike the Python version, this only handles exactly two sequences
+    (like `zip`). It also requires both sequences to be of optional
+    values, and fills missing values with `nil`. See also `zip_fill`.
+	
+`zip_fill(s0: Sequence of T0, s1: sequence of T1, f0: T0, f1: T1)` -->
+    `(s0[0], s1[0]), (s0[1], s1[1]), ..., (f0, s1[n]), ...`
+	Unlike the Python version, this only handles exactly two sequences
+    (like `zip`). Also unlike the Python version, it requires two
+    separate fill values. See also `zip_longest`.
+
+Combinatoric generators
+=======================
+
+`product(s0: Sequence of T, s1: Sequence of T, ...)` -->
+    `(s0[0], s1[0]), (s0[0], s0[1]), ..., (s0[1], s1[0]), ...`
+	Unlike Python's `product`, this cannot be used for heterogeneous
+	lists of sequences (see `product2`), or for a single sequence with
+    a `repeat` parameter (see `self_product`).
+
+`product2(s0: Sequence of T0, s1: Sequence of T1)` -->
+    `(s0[0], s1[0]), (s0[0], s0[1]), ..., (s0[1], s1[0]), ...`
+	Unlike Python's `product`, this does not take an arbitrary number
+    of arguments, it takes exactly two. For a single sequence and a
+    `repeat` value, see `self_product`.
+
+`self_product(s: Sequence of T, repeat: Int)` -->
+    `(s[0], s[0]), (s[0], s[1]), ..., (s[1], s[0]), ...`
+	This is equivalent to `product(s, repeat)` in Python.
+	

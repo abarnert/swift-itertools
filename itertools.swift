@@ -477,6 +477,127 @@ func zip_longest<S0: Sequence, S1: Sequence, T0, T1
                    fillvalue0: nil, fillvalue1: nil)
 }
 
+/* Storing a bunch of Generators in an array makes each one immutable,
+   which makes them completely useless. Without a way around that,
+   there doesn't seem to be any way to implement Product, or anything
+   else that works on a sequence of sequences... */
+/*
+struct Product<S: Sequence, T where T == S.GeneratorType.Element>
+        : Sequence, Generator {
+    var seqs: T[][]
+    var gens: Array<T>.GeneratorType[]
+    var vals: T[]?
+    init(sequences: S[]) {
+        seqs = []
+        gens = []
+        for seq in sequences {
+            let aseq = array(seq)
+            seqs.append(aseq)
+            gens.append(aseq.generate())
+        }
+        // Can't pass explicitly-specialized generic like array<S, T>,
+        // closure { array($0) } fails to infer type, and an
+        // explicitly typed closure produces a slew of incomprehensible
+        // and seemingly irrelevant errors. Presumably there's a bug in
+        // the beta compiler, so just do things manually for now...
+        // seqs = array(map(sequences, { array($0) }))
+        // gens = array(map(seqs, { $0.generate() }))
+        vals = nil
+    }
+    func generate() -> Product<S, T> {
+        return self
+    }
+    mutating func next() -> T[]? {
+        if vals == nil {
+            vals = []
+            for gen in gens {
+                if let val: T = gen.next() {
+                    vals!.append(val)
+                } else {
+                    return nil
+                }
+            }
+            return vals
+        } else {
+            for i in (vals!.count-1)...0 {
+                if let val: T = gens[i].next() {
+                    vals![i] = val
+                    return vals!
+                } else {
+                    gens[i] = seqs[i].generate()
+                    if let val: T = gens[i].next() {
+                        vals![i] = val
+                    } else {
+                        return nil
+                    }
+                }
+            }
+            return vals
+        }
+    }
+}        
+
+func product<S: Sequence, T where T == S.GeneratorType.Element>
+        (sequences: S...) -> Product<S, T> {
+    return Product(sequences: sequences)
+}
+
+func self_product<S: Sequence, T where T == S.GeneratorType.Element>
+        (sequence: S, repeat: Int) -> Product<S, T> {
+    return Product(sequences: S[](count: repeat, repeatedValue: sequence))
+}
+*/
+
+struct Product2<S0: Sequence, S1: Sequence, T0, T1 
+                where T0 == S0.GeneratorType.Element, 
+                T1 == S1.GeneratorType.Element>
+        : Sequence, Generator {
+    var gen0: S0.GeneratorType
+    var val0: T0?
+    var seq1: T1[]
+    var gen1: Array<T1>.GeneratorType
+    init(sequence0: S0, sequence1: S1) {
+        gen0 = sequence0.generate()
+        val0 = gen0.next()
+        seq1 = array(sequence1)
+        gen1 = seq1.generate()
+    }
+    func generate() -> Product2<S0, S1, T0, T1> {
+        return self
+    }
+    mutating func next() -> (T0, T1)? {
+        if val0 == nil {
+            if let val: T0 = gen0.next() {
+                val0 = val
+            } else {
+                return nil
+            }
+        }
+        if let val1: T1 = gen1.next() {
+            return (val0!, val1)
+        } else if let val: T0 = gen0.next() {
+            val0 = val
+            gen1 = seq1.generate()
+            if let val1: T1 = gen1.next() {
+                return (val0!, val1)
+            } else {
+                return nil
+            }
+        }
+        // even though every path above has a return, the compiler
+        // complains about a missing return...
+        assert("can't get here")
+        return nil
+    }
+}
+
+func product2<S0: Sequence, S1: Sequence, T0, T1
+              where T0 == S0.GeneratorType.Element, 
+              T1 == S1.GeneratorType.Element>
+        (sequence0: S0, sequence1: S1)
+        -> Product2<S0, S1, T0, T1> {
+    return Product2(sequence0: sequence0, sequence1: sequence1)
+}
 
 // Scala interpose
 struct Interpose<S: Sequence, T where T == S.GeneratorType.Element>
