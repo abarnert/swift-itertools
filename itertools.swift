@@ -477,11 +477,6 @@ func zip_longest<S0: Sequence, S1: Sequence, T0, T1
                    fillvalue0: nil, fillvalue1: nil)
 }
 
-/* Storing a bunch of Generators in an array makes each one immutable,
-   which makes them completely useless. Without a way around that,
-   there doesn't seem to be any way to implement Product, or anything
-   else that works on a sequence of sequences... */
-/*
 struct Product<S: Sequence, T where T == S.GeneratorType.Element>
         : Sequence, Generator {
     var seqs: T[][]
@@ -509,20 +504,30 @@ struct Product<S: Sequence, T where T == S.GeneratorType.Element>
     }
     mutating func next() -> T[]? {
         if vals == nil {
-            vals = []
-            for gen in gens {
-                if let val: T = gen.next() {
-                    vals!.append(val)
+            // For some reason, trying to append directly to vals!
+            // says "could not find member 'append'". So, let's
+            // first create a new array, then store it.
+            var newvals: T[] = []
+            // Iterating over arrays (or any generators!) gives you
+            // immutable values, so you have to explicitly loop by
+            // index. (This also means we can't possibly replace this
+            // whole loop with, e.g., a call to map.)
+            for i in 0..gens.count {
+                if let val: T = gens[i].next() {
+                    newvals.append(val)
                 } else {
                     return nil
                 }
             }
-            return vals
+            vals = newvals
+            return newvals
         } else {
-            for i in (vals!.count-1)...0 {
+            for i in reverse(0..vals!.count) {
                 if let val: T = gens[i].next() {
                     vals![i] = val
-                    return vals!
+                    return vals
+                } else if i == 0 {                    
+                    return nil
                 } else {
                     gens[i] = seqs[i].generate()
                     if let val: T = gens[i].next() {
@@ -546,7 +551,6 @@ func self_product<S: Sequence, T where T == S.GeneratorType.Element>
         (sequence: S, repeat: Int) -> Product<S, T> {
     return Product(sequences: S[](count: repeat, repeatedValue: sequence))
 }
-*/
 
 struct Product2<S0: Sequence, S1: Sequence, T0, T1 
                 where T0 == S0.GeneratorType.Element, 

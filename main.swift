@@ -31,19 +31,32 @@ if let limit = intifyarg1() {
 }
 */
 
+println("*** groupby/islice ***")
 let a = [0, 0, 0, 1, 1, 2, 2, 2, 3]
 let g = groupby_nokey(a)
 for (key, group) in islice(g, start: 1) {
     println("\(key): \(group)")
 }
 
+println("*** zip ***")
 let b = [1, 2, 3]
 let c = ["spam", "eggs"]
 for t in zip(b, c) {
     println("\(t)")
 }
 
+println("*** product2 ***")
 for t in product2(b, c) {
+    println("\(t)")
+}
+
+println("*** product ***")
+for t in product(c, c, c) {
+    println("\(t)")
+}
+
+println("*** self_product ***")
+for t in self_product(c, 2) {
     println("\(t)")
 }
 
