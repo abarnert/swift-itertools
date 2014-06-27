@@ -14,6 +14,11 @@ func negate<T>(f: T->Bool) -> T->Bool {
     return { !f($0) }
 }
 
+func defaultify<T>(value: T?, defvalue: T) -> T {
+    if let ret: T = value { return ret }
+    return defvalue
+}
+
 func zipopt<T, U>(t: T?, u: U?) -> (T, U)? {
     if let tt: T = t {
         if let uu: U = u {
@@ -26,7 +31,7 @@ func zipopt<T, U>(t: T?, u: U?) -> (T, U)? {
 struct Count: Sequence, Generator {
     var start: Int
     var step: Int
-    init(start: Int = 0, step: Int = 1) {
+    init(start: Int=0, step: Int=1) {
         self.start = start
         self.step = step
     }
@@ -40,7 +45,8 @@ struct Count: Sequence, Generator {
     }
 }
 
-func count(start: Int = 0, step: Int = 1) -> Count { 
+// There's a builtin count function, equivalent to len in Python
+func counter(start: Int=0, step: Int=1) -> Count { 
     return Count(start: start, step: step)
 }
 
@@ -350,7 +356,7 @@ struct ISlice<S: Sequence, T where T == S.GeneratorType.Element>
             }
             pos = start
         }
-	if (stop != nil) && (pos > stop) {
+	if (stop != nil) && (pos >= stop) {
             return nil
         }
         pos += step
@@ -366,6 +372,11 @@ func islice<S: Sequence, T where T == S.GeneratorType.Element>
         (sequence: S, start: Int = 0, stop: Int? = nil, step: Int = 1) 
         -> ISlice<S, T> {
     return ISlice(sequence: sequence, start: start, stop: stop, step: step)
+}
+
+func take<S: Sequence, T where T == S.GeneratorType.Element>
+        (sequence: S, n: Int) -> T[] {
+    return array(ISlice(sequence: sequence, stop: n))
 }
 
 /* starmap appears to be impossible, because (a) tuples aren't sequences,
@@ -601,6 +612,49 @@ func product2<S0: Sequence, S1: Sequence, T0, T1
         (sequence0: S0, sequence1: S1)
         -> Product2<S0, S1, T0, T1> {
     return Product2(sequence0: sequence0, sequence1: sequence1)
+}
+
+// This really shouldn't require an explicit generator type; it's just
+// doing map(counter(start, step), function). But there are two problems
+// with that. First, map doesn't return a Generator. Second, there
+// doesn't seem to be any way to get the compiler to infer the return
+// type for tabulate, and there's no way to write it explicitly without
+// delving into internal details of the map function.
+struct Tabulate<T>: Sequence, Generator {
+    var c: Count
+    var f: Int->T
+    init(start: Int=0, function: Int->T) {
+        c = counter(start: start)
+        f = function
+    }
+    func generate() -> Tabulate<T> {
+        return self
+    }
+    mutating func next() -> T? {
+        // It doesn't seem possible to nil-chain on arguments being nil,
+        // only on functions, methods, or self, so we have to write it
+        // explicitly.
+        if let v = c.next() {
+            return f(v)
+        } else {
+            return nil
+        }
+    }
+}
+
+func tabulate<T>(function: Int->T) -> Tabulate<T> { 
+    return Tabulate(start: 0, function: function)
+}
+
+func tabulate_n<T>(n: Int, function: Int->T) -> Tabulate<T> { 
+    return Tabulate(start: n, function: function)
+}
+
+func consume<S: Sequence, T where T == S.GeneratorType.Element>
+    (sequence: S, n: Int?) {
+    var gen = sequence.generate()
+    let n0 = defaultify(n, 0)
+    for i in 0..n0 { gen.next() }
 }
 
 // Scala interpose

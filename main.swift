@@ -38,6 +38,12 @@ for (key, group) in islice(g, start: 1) {
     println("\(key): \(group)")
 }
 
+println("*** groupby/take ***")
+let g2 = groupby_nokey(a)
+for (key, group) in take(g2, 2) {
+    println("\(key): \(group)")
+}
+
 println("*** zip ***")
 let b = [1, 2, 3]
 let c = ["spam", "eggs"]
@@ -59,6 +65,14 @@ println("*** self_product ***")
 for t in self_product(c, 2) {
     println("\(t)")
 }
+
+println("*** tabulate/take ***")
+let squares = tabulate({ $0*$0 })
+let squares15 = take(squares, 5)
+println("\(squares15)")
+let squares1a = tabulate_n(1, { $0*$0 })
+let squares15a = take(squares1a, 4)
+println("\(squares15a)")
 
 /*
 for (key, group) in groupby(a, { $0 / 2 }) {

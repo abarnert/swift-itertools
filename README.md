@@ -142,6 +142,11 @@ Utility functions and types
     sequence isn't repeatable, it will be consumed. If it's infinite,
     this will of course hang forever.
 
+`defaultify(value: T?, defvalue: T)` --> `value! or defvalue`
+    Supplies a default value for an optional. (May not be necessary
+	with future compilers, but for now it's needed to work around a
+	compiler crash from the obvious way to do this concisely inline.)
+
 `negate(T->Bool)` --> `T->Bool`
     Takes a predicate and returns the opposite predicate.
 
@@ -152,8 +157,9 @@ Utility functions and types
 Infinite Iterators
 ==================
 
-`count(start: Int = 0, step: Int = 1)` -->
+`counter(start: Int = 0, step: Int = 1)` -->
     `start, start+step, start+step*2, ...`
+	Named `counter` to avoid collision with the builtin `count`.
     Only counts integers, a restriction Python doesn't enforce.
 
 `cycle(sequence: Sequence)` -->
@@ -275,4 +281,24 @@ Combinatoric generators
 `self_product(s: Sequence of T, repeat: Int)` -->
     `(s[0], s[0]), (s[0], s[1]), ..., (s[1], s[0]), ...`
 	This is equivalent to `product(s, repeat)` in Python.
+	
+`permutations`, `combinations`, `combinations_with_replacement` later
+
+Recipes
+=======
+
+`take(s: Sequence of T, n: Int)` -->
+    `[s[0], s[1], ..., s[n]]`
+
+`tabulate(function: Int->T)` -->
+    `function(0), function(1), ...`
+	Unlike the Python version, this doesn't take an optional start
+    value `n`, because we need to put `function` last to preserve the
+    usual trailing-closure style. See `tabulate_n`.
+
+`tabulate_n(n: Int, function: Int->T)` -->
+    `function(n), function(n+1), ...`
+
+`consume(sequence: Sequence, n: Int?)` -->
+    `nil`
 	
