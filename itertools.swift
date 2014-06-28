@@ -4,19 +4,20 @@ protocol Addable {
 extension Int: Addable {}
 extension Float: Addable {}
 
-func array<S: Sequence, T where T == S.GeneratorType.Element>(sequence: S) -> T[] {
+func array<S: Sequence, T where T == S.GeneratorType.Element>
+        (sequence: S) -> T[] {
     var t = T[]()
     for value in sequence { t.append(value) }
     return t
 }
 
-func negate<T>(f: T->Bool) -> T->Bool {
-    return { !f($0) }
-}
-
 func defaultify<T>(value: T?, defvalue: T) -> T {
     if let ret: T = value { return ret }
     return defvalue
+}
+
+func negate<T>(f: T->Bool) -> T->Bool {
+    return { !f($0) }
 }
 
 func zipopt<T, U>(t: T?, u: U?) -> (T, U)? {
@@ -26,6 +27,35 @@ func zipopt<T, U>(t: T?, u: U?) -> (T, U)? {
         }
     }
     return nil
+}
+
+func fold<S: Sequence, T where T == S.GeneratorType.Element>
+        (sequence: S, start: T, function: (T, T)->T) -> T {
+    var total = start
+    for value in sequence {
+        total = function(total, value)
+    }
+    return total
+}
+
+func fold1<S: Sequence, T where T == S.GeneratorType.Element>
+        (sequence: S, function: (T, T)->T) -> T {
+    var gen = sequence.generate()
+    var total = gen.next()!
+    while let value = gen.next() {
+        total = function(total, value)
+    }
+    return total
+}
+
+func sum<S: Sequence, T: Addable where T == S.GeneratorType.Element>
+        (sequence: S, start: T) -> T {
+    return fold(sequence, start, { $0+$1 })
+}
+
+func sum1<S: Sequence, T: Addable where T == S.GeneratorType.Element>
+        (sequence: S) -> T {
+    return fold1(sequence, { $0+$1 })
 }
 
 struct Count: Sequence, Generator {
@@ -651,10 +681,33 @@ func tabulate_n<T>(n: Int, function: Int->T) -> Tabulate<T> {
 }
 
 func consume<S: Sequence, T where T == S.GeneratorType.Element>
-    (sequence: S, n: Int?) {
+        (sequence: S, n: Int?) {
     var gen = sequence.generate()
     let n0 = defaultify(n, 0)
     for i in 0..n0 { gen.next() }
+}
+
+func nth<S: Sequence, T where T == S.GeneratorType.Element>
+        (sequence: S, n: Int) -> T? {
+    // The one-liner islice(sequence, start: n).next() fails because
+    // "immutable value of type 'ISlice<$T1, $T2>' only has mutating 
+    // members named 'next'". In other words, temporary values are
+    // apparently always immutable? That seems more than a little
+    // strange, but it explains why the attemped one-liner version of
+    // consume crashed the compiler...
+    var slice = islice(sequence, start: n)
+    return slice.next()
+}
+
+func nth_default<S: Sequence, T where T == S.GeneratorType.Element>
+        (sequence: S, n: Int, defvalue: T) -> T {
+    var slice = islice(sequence, start: n)
+    return defaultify(slice.next(), defvalue)
+}
+
+func quantify<S: Sequence, T where T == S.GeneratorType.Element>
+        (sequence: S, predicate: T->Bool) {
+    
 }
 
 // Scala interpose

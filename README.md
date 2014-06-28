@@ -154,6 +154,31 @@ Utility functions and types
     Given two optional values, returns an optional tuple, nil if
     either value is nil.
 
+Folding functions
+=================
+
+While Swift does have a builtin `reduce(sequence, start, function)`,
+just running `reduce([1, 2, 3, 4], 0, {$0+$1})` takes about 8 seconds
+on my laptop. Also, neither function nor start can be defaulted, which
+means we really need four separate functions to handle all of the
+cases. (For a more general `reduce` that includes a `transform`
+function as well, we'd need 8, but the three-arg `reduce` plus `map`
+should make that unnecessary.) So:
+
+`sum1(sequence: Sequence<T>)` --> 
+    `s[0] + s[1] + ...`
+	It is an error to call this on an empty sequence.
+
+`sum(sequence: Sequence<T>, start: T)` --> 
+    `start + s[0] + s[1] + ...`
+
+`fold1(sequence: Sequence<T>, combine: (T, T)->T` -->
+    `combine(combine(...(s[0], s[1]), s[2]), ...)`
+	It is an error to call this on an empty sequence.
+
+`fold(sequence: Sequence<T>, start: T, combine: (T, T)->T` -->
+    `combine(combine(...(start, s[0]), s[1]), ...)`
+
 Infinite Iterators
 ==================
 
@@ -301,4 +326,17 @@ Recipes
 
 `consume(sequence: Sequence, n: Int?)` -->
     `nil`
+	Note that when called on an actual `Sequence` that creates new
+	`Generator`s on each call, rather than one that wraps a
+    `Generator` and returns `self`, this will have no visible effect,
+	and that seems to be much more common with Swift's stdlib than
+    Python's.
 	
+`nth(sequence: Sequence, n: Int)` -->
+    `s[n] or nil`
+	Unlike the Python version, this does not take an optional default
+	value (because that would change the type from T? to T). See
+	`nth_default`.
+	
+`nth_default(sequence: Sequence, n: Int, defvalue: T)` -->
+    `s[n] or defvalue`

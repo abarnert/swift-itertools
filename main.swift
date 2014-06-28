@@ -74,6 +74,9 @@ let squares1a = tabulate_n(1, { $0*$0 })
 let squares15a = take(squares1a, 4)
 println("\(squares15a)")
 
+println("*** sum/sum1 ***")
+println("\(sum1(squares15a))")
+
 /*
 for (key, group) in groupby(a, { $0 / 2 }) {
     println("\(key): \(group)")
